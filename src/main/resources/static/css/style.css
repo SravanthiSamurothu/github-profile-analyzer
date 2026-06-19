@@ -225,3 +225,26 @@ h1{
         grid-template-columns:1fr;
     }
 }
+
+.chart-section{
+    margin-bottom:30px;
+}
+
+.chart-card{
+    background:#161b22;
+    border:1px solid #30363d;
+    border-radius:16px;
+    padding:25px;
+    margin-bottom:25px;
+}
+
+.chart-card h2{
+    color:#58a6ff;
+    margin-bottom:20px;
+}
+
+#languageChart{
+    max-width:500px;
+    max-height:500px;
+    margin:auto;
+}

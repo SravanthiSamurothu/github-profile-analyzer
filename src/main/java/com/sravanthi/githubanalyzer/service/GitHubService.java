@@ -1,9 +1,10 @@
 package com.sravanthi.githubanalyzer.service;
-import com.sravanthi.githubanalyzer.exception.UserNotFoundException;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sravanthi.githubanalyzer.dto.RepositoryDTO;
 import com.sravanthi.githubanalyzer.dto.StatisticsDTO;
 import com.sravanthi.githubanalyzer.dto.UserProfileDTO;
+import com.sravanthi.githubanalyzer.exception.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -13,19 +14,17 @@ import java.util.*;
 @Service
 public class GitHubService {
 
-    @Autowired
-    private RestTemplate restTemplate;
+@Autowired
+private RestTemplate restTemplate;
 
-    private static final String BASE_URL =
-            "https://api.github.com/users/";
+private static final String BASE_URL =
+        "https://api.github.com/users/";
 
-    public UserProfileDTO getProfile(
-        String username) {
+public UserProfileDTO getProfile(String username) {
 
     try {
 
-        String url =
-                BASE_URL + username;
+        String url = BASE_URL + username;
 
         return restTemplate.getForObject(
                 url,
@@ -35,103 +34,121 @@ public class GitHubService {
     } catch (Exception e) {
 
         throw new UserNotFoundException(
-                "GitHub user not found: "
-                        + username
+                "GitHub user not found: " + username
         );
     }
 }
 
-    public List<RepositoryDTO> getRepositories(
-            String username) {
+public List<RepositoryDTO> getRepositories(
+        String username) {
 
-        String url =
-                BASE_URL + username + "/repos";
+    String url =
+            BASE_URL + username + "/repos";
 
-        JsonNode repos =
-                restTemplate.getForObject(
-                        url,
-                        JsonNode.class
-                );
-
-        List<RepositoryDTO> repositoryList =
-                new ArrayList<>();
-
-        if (repos == null) {
-            return repositoryList;
-        }
-
-        for (JsonNode repo : repos) {
-
-            RepositoryDTO dto =
-                    new RepositoryDTO();
-
-            dto.setName(
-                    repo.get("name").asText()
+    JsonNode repos =
+            restTemplate.getForObject(
+                    url,
+                    JsonNode.class
             );
 
-            dto.setDescription(
-                    repo.get("description") != null
-                            ? repo.get("description").asText()
-                            : "No Description"
-            );
+    List<RepositoryDTO> repositoryList =
+            new ArrayList<>();
 
-            dto.setLanguage(
-                    repo.get("language") != null
-                            ? repo.get("language").asText()
-                            : "Unknown"
-            );
-
-            dto.setStars(
-                    repo.get("stargazers_count").asInt()
-            );
-
-            dto.setForks(
-                    repo.get("forks_count").asInt()
-            );
-
-            dto.setOpenIssues(
-                    repo.get("open_issues_count").asInt()
-            );
-
-            dto.setUpdatedAt(
-                    repo.get("updated_at").asText()
-            );
-
-            repositoryList.add(dto);
-        }
-
+    if (repos == null) {
         return repositoryList;
     }
 
-    public StatisticsDTO getStatistics(
-            String username) {
+    for (JsonNode repo : repos) {
 
-        List<RepositoryDTO> repos =
-                getRepositories(username);
+        RepositoryDTO dto =
+                new RepositoryDTO();
 
-        StatisticsDTO stats =
-                new StatisticsDTO();
-
-        stats.setTotalRepositories(
-                repos.size()
+        dto.setName(
+                repo.get("name").asText()
         );
 
-        int totalStars = 0;
-        int totalForks = 0;
+        JsonNode descriptionNode =
+                repo.get("description");
 
-        Map<String, Integer> languageMap =
-                new HashMap<>();
+        dto.setDescription(
+                descriptionNode == null
+                        || descriptionNode.isNull()
+                        ? "No Description Available"
+                        : descriptionNode.asText()
+        );
 
-        String mostStarredRepo = "";
-        int highestStars = 0;
+        JsonNode languageNode =
+                repo.get("language");
 
-        for (RepositoryDTO repo : repos) {
+        String language = "Unknown";
 
-            totalStars += repo.getStars();
-            totalForks += repo.getForks();
+        if (languageNode != null
+                && !languageNode.isNull()) {
 
-            String language =
-                    repo.getLanguage();
+            language =
+                    languageNode.asText();
+        }
+
+        dto.setLanguage(language);
+
+        dto.setStars(
+                repo.get("stargazers_count")
+                        .asInt()
+        );
+
+        dto.setForks(
+                repo.get("forks_count")
+                        .asInt()
+        );
+
+        dto.setOpenIssues(
+                repo.get("open_issues_count")
+                        .asInt()
+        );
+
+        dto.setUpdatedAt(
+                repo.get("updated_at")
+                        .asText()
+        );
+
+        repositoryList.add(dto);
+    }
+
+    return repositoryList;
+}
+
+public StatisticsDTO getStatistics(
+        String username) {
+
+    List<RepositoryDTO> repos =
+            getRepositories(username);
+
+    StatisticsDTO stats =
+            new StatisticsDTO();
+
+    stats.setTotalRepositories(
+            repos.size()
+    );
+
+    int totalStars = 0;
+    int totalForks = 0;
+
+    Map<String, Integer> languageMap =
+            new HashMap<>();
+
+    String mostStarredRepo = "";
+    int highestStars = 0;
+
+    for (RepositoryDTO repo : repos) {
+
+        totalStars += repo.getStars();
+        totalForks += repo.getForks();
+
+        String language =
+                repo.getLanguage();
+
+        if (!"Unknown".equals(language)
+                && !"null".equals(language)) {
 
             languageMap.put(
                     language,
@@ -140,39 +157,44 @@ public class GitHubService {
                             0
                     ) + 1
             );
-
-            if (repo.getStars() > highestStars) {
-
-                highestStars =
-                        repo.getStars();
-
-                mostStarredRepo =
-                        repo.getName();
-            }
         }
 
-        stats.setTotalStars(totalStars);
-        stats.setTotalForks(totalForks);
-        stats.setMostStarredRepository(
-                mostStarredRepo
-        );
-        stats.setLanguageDistribution(
-                languageMap
-        );
+        if (repo.getStars() > highestStars) {
 
-        if (!languageMap.isEmpty()) {
+            highestStars =
+                    repo.getStars();
 
-            String mostUsedLanguage =
-                    Collections.max(
-                            languageMap.entrySet(),
-                            Map.Entry.comparingByValue()
-                    ).getKey();
-
-            stats.setMostUsedLanguage(
-                    mostUsedLanguage
-            );
+            mostStarredRepo =
+                    repo.getName();
         }
-
-        return stats;
     }
+
+    stats.setTotalStars(totalStars);
+
+    stats.setTotalForks(totalForks);
+
+    stats.setMostStarredRepository(
+            mostStarredRepo
+    );
+
+    stats.setLanguageDistribution(
+            languageMap
+    );
+
+    if (!languageMap.isEmpty()) {
+
+        String mostUsedLanguage =
+                Collections.max(
+                        languageMap.entrySet(),
+                        Map.Entry.comparingByValue()
+                ).getKey();
+
+        stats.setMostUsedLanguage(
+                mostUsedLanguage
+        );
+    }
+
+    return stats;
+}
+
 }

@@ -38,6 +38,10 @@ async function searchUser() {
         displayStats(stats);
         displayRepositories(repos);
 
+        drawLanguageChart(
+            stats.languageDistribution
+        );
+
     } catch (error) {
 
         alert("User not found");
@@ -164,4 +168,47 @@ function displayRepositories(repositories) {
     document.getElementById(
         "repositories"
     ).innerHTML = html;
+}
+
+let chart;
+
+function drawLanguageChart(languageDistribution){
+
+    const labels =
+        Object.keys(languageDistribution);
+
+    const values =
+        Object.values(languageDistribution);
+
+    const ctx =
+        document.getElementById("languageChart");
+
+    if(chart){
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx,{
+
+        type:"pie",
+
+        data:{
+            labels:labels,
+
+            datasets:[{
+                data:values
+            }]
+        },
+
+        options:{
+            responsive:true,
+
+            plugins:{
+                legend:{
+                    labels:{
+                        color:"white"
+                    }
+                }
+            }
+        }
+    });
 }
